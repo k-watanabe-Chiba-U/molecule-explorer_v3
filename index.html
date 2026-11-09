@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f8">
+  <meta name="description" content="分子観察鏡。分子・イオン・結晶を自分の視点で回転・拡大し、三次元構造を観察する授業用Web教材。">
+  <title>分子観察鏡 | Digital Molecular Imaging System</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.5.5/3Dmol-min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a href="#observation" class="skip-link">分子観察画面へ移動</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+            <circle cx="24" cy="24" r="4.2" fill="currentColor"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8.2" transform="rotate(35 24 24)" stroke="currentColor" stroke-width="1.8"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8.2" transform="rotate(-35 24 24)" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+        </span>
+        <span class="brand-heading"><strong>分子観察鏡</strong><small>Digital Molecular Imaging System</small></span>
+      </div>
+      <div class="topbar-tag"><span class="pulse-dot"></span> INTERACTIVE 3D</div>
+    </header>
+
+    <main id="observation" class="workspace">
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">OBSERVE THE INVISIBLE</p>
+          <h1>想像する化学から、<span>観察する化学へ。</span></h1>
+        </div>
+        <p class="brief-hint">分子を選び、指やマウスで回して観察しよう。</p>
+      </div>
+
+      <div class="studio-layout">
+        <aside class="structure-sidebar" aria-labelledby="structure-title">
+          <div class="sidebar-header">
+            <div><span class="section-overline">STRUCTURE LIBRARY</span><h2 id="structure-title">観察する構造</h2></div>
+            <span class="library-count" id="library-count">00 / 08</span>
+          </div>
+          <div class="structure-list" id="structure-list" role="group" aria-label="観察する構造を選択">
+            <p class="list-loading">構造一覧を読み込んでいます…</p>
+          </div>
+          <p class="sidebar-footnote" id="sidebar-message" aria-live="polite">8つの構造を番号順に表示します。</p>
+        </aside>
+
+        <section class="viewer-panel" aria-label="三次元分子観察">
+          <div class="viewer-toolbar">
+            <div class="viewer-title">
+              <span class="viewer-overline">MOLECULAR VIEWPORT <span class="active-indicator">● LIVE</span></span>
+              <h2 id="current-name">観察する構造を選んでください</h2>
+            </div>
+            <div class="viewer-actions">
+              <span class="structure-progress" id="current-position">— / 08</span>
+              <button type="button" class="tool-icon" id="reset-view" aria-label="視点をリセット" title="視点をリセット" disabled>
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11a9 9 0 1 1 2.6 6.4"/><path d="M3 4v7h7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="viewport" id="viewport">
+            <div id="molecule-viewer" class="molecule-viewer" aria-label="3D分子モデル。ドラッグで回転、ピンチまたはホイールで拡大縮小できます。"></div>
+            <div class="viewport-grid" aria-hidden="true"></div>
+            <span class="viewport-corner tl" aria-hidden="true"></span>
+            <span class="viewport-corner tr" aria-hidden="true"></span>
+            <span class="viewport-corner bl" aria-hidden="true"></span>
+            <span class="viewport-corner br" aria-hidden="true"></span>
+            <div class="viewport-empty" id="viewport-empty" role="status">
+              <svg viewBox="0 0 64 64" width="76" height="76" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="5" fill="currentColor"/><ellipse cx="32" cy="32" rx="27" ry="11" transform="rotate(38 32 32)" stroke="currentColor" stroke-width="1.5"/><ellipse cx="32" cy="32" rx="27" ry="11" transform="rotate(-38 32 32)" stroke="currentColor" stroke-width="1.5"/></svg>
+              <strong id="empty-heading">XYZファイルを読み込んでいます</strong>
+              <span id="empty-detail">講義用の8構造を表示します</span>
+            </div>
+            <div class="viewport-guide" aria-hidden="true">ドラッグで回転 <span>·</span> ホイール / ピンチで拡大</div>
+          </div>
+
+          <div class="controls">
+            <div class="controls-main" role="group" aria-label="モデル表示形式">
+              <button type="button" class="mode-button selected" data-style="ballstick" aria-pressed="true">球棒モデル</button>
+              <button type="button" class="mode-button" data-style="stick" aria-pressed="false">棒モデル</button>
+              <button type="button" class="mode-button" data-style="sphere" aria-pressed="false">空間充填</button>
+            </div>
+            <div class="controls-secondary">
+              <button type="button" class="toggle-button" id="spin-button" aria-pressed="false" disabled><span aria-hidden="true">↻</span> 自動回転</button>
+            </div>
+          </div>
+
+          <div class="frame-controls" id="frame-controls" hidden>
+            <button type="button" class="frame-play" id="frame-play" aria-label="連続フレームを再生">▶</button>
+            <label class="frame-scrubber">構造の変化 <input type="range" id="frame-slider" min="0" max="0" value="0" aria-label="フレームを切り替える"></label>
+            <span class="frame-label" id="frame-label">1 / 1</span>
+          </div>
+
+          <div class="navigation-row">
+            <button type="button" class="nav-button" id="previous-structure" disabled>← 前の構造</button>
+            <span id="structure-meta" class="meta-text">観察する構造を選んでください</span>
+            <button type="button" class="nav-button" id="next-structure" disabled>次の構造 →</button>
+          </div>
+        </section>
+      </div>
+      <p class="system-status" id="system-status" role="status" aria-live="polite"></p>
+    </main>
+
+    <footer class="footer">
+      <span>分子観察鏡 <span class="footer-divider">/</span> Digital Molecular Imaging System</span>
+      <span>XYZ座標に基づく3Dモデル · 結合は原子間距離から推定されます</span>
+    </footer>
+  </div>
+</body>
+</html>
