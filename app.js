@@ -81,6 +81,61 @@ function parseXYZ(text) {
   return { frames, count: expectedCount };
 }
 
+/**
+ * NaCl (structures 6-8): explicitly draw nearest-neighbour Na--Cl links.
+ * These sticks are a visual representation of the ionic lattice, not
+ * covalent Na--Cl bonds.  Oxygen and hydrogen form only water O--H links.
+ * In particular, Na--O hydration contacts must never become sticks.
+ *
+ * 3Dmol.js initially guesses bonds in XYZ files using atom distances.
+ * Rebuilding the bond lists here avoids unwanted Na--O links and makes
+ * lattice links independent of the library's covalent-radius heuristic.
+ */
+function setSaltLatticeConnections(model) {
+  const NACL_MAX_DIST2 = 3.12 * 3.12;  // NaCl crystal nearest neighbour: 2.82 Å
+  const NACL_MIN_DIST2 = 2.30 * 2.30;
+  const OH_MAX_DIST2 = 1.24 * 1.24;    // water O--H: about 0.96 Å
+  const OH_MIN_DIST2 = 0.65 * 0.65;
+  const frames = Array.isArray(model.frames) && model.frames.length
+    ? model.frames : [model.selectedAtoms({})];
+
+  function distance2(a, b) {
+    const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+    return dx * dx + dy * dy + dz * dz;
+  }
+  function connect(atoms, i, j) {
+    atoms[i].bonds.push(j);
+    atoms[i].bondOrder.push(1);
+    atoms[j].bonds.push(i);
+    atoms[j].bondOrder.push(1);
+  }
+
+  for (const atoms of frames) {
+    if (!Array.isArray(atoms) || !atoms.length) continue;
+    const sodium = [], chloride = [], oxygen = [], hydrogen = [];
+    atoms.forEach((atom, i) => {
+      // Remove automatic XYZ bond guesses, including all Na--O contacts.
+      atom.bonds = [];
+      atom.bondOrder = [];
+      if (atom.elem === 'Na') sodium.push(i);
+      else if (atom.elem === 'Cl') chloride.push(i);
+      else if (atom.elem === 'O') oxygen.push(i);
+      else if (atom.elem === 'H') hydrogen.push(i);
+    });
+
+    // Ionic lattice: connect only adjacent Na and Cl ions.
+    for (const i of sodium) for (const j of chloride) {
+      const d2 = distance2(atoms[i], atoms[j]);
+      if (d2 >= NACL_MIN_DIST2 && d2 <= NACL_MAX_DIST2) connect(atoms, i, j);
+    }
+    // Covalent bonds within water molecules, but no links to ions.
+    for (const i of oxygen) for (const j of hydrogen) {
+      const d2 = distance2(atoms[i], atoms[j]);
+      if (d2 >= OH_MIN_DIST2 && d2 <= OH_MAX_DIST2) connect(atoms, i, j);
+    }
+  }
+}
+
 function renderStructureButtons() {
   const list = $('structure-list');
   list.replaceChildren();
@@ -188,6 +243,8 @@ async function loadEntry(index) {
     currentModel = parsed.frames.length === 1
       ? viewer.addModel(parsed.frames[0], 'xyz')
       : viewer.addModelsAsFrames(parsed.frames.join(''), 'xyz');
+    // Only the fixed NaCl examples 6, 7 and 8 receive explicit ionic links.
+    if (index >= 5 && index <= 7) setSaltLatticeConnections(currentModel);
     currentData = parsed;
     currentEntryIndex = index;
     frameIndex = 0;
